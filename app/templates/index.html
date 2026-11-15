@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>发酵罐温度质控记录</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+         margin: 0; background: #f4f6f8; color: #1f2933; }
+  header { background: #0f4c5c; color: #fff; padding: 16px 24px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: .85; }
+  main { max-width: 1080px; margin: 24px auto; padding: 0 16px; }
+  .card { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;
+          box-shadow: 0 1px 3px rgba(15, 76, 92, .12); }
+  .flash { border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
+  .flash.ok { background: #e6f6e6; border: 1px solid #8fce8f; color: #1d6b1d; }
+  .flash.err { background: #fdecea; border: 1px solid #f0a9a0; color: #a12622; }
+  form.inline { display: inline; }
+  button, a.btn { display: inline-block; border: 0; border-radius: 6px; padding: 9px 18px;
+          font-size: 14px; cursor: pointer; text-decoration: none; }
+  button { background: #0f4c5c; color: #fff; }
+  button:hover { background: #156372; }
+  a.btn { background: #e4ebf0; color: #0f4c5c; margin-left: 8px; }
+  a.btn:hover { background: #d3dee6; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #e5eaee; }
+  th { background: #f0f4f7; font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .muted { color: #6b7a86; font-size: 12px; }
+  .stat { display: inline-block; margin-right: 28px; }
+  .stat b { font-size: 22px; display: block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>发酵罐温度质控记录</h1>
+  <p>NDJSON 日志增量采集 · 半行留待下次 · 轮转/重启/重复点击不漏不重 · 非法行与同序号异内容整轮拒绝</p>
+</header>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card">
+    <form class="inline" method="post" action="{{ url_for('collect') }}">
+      <button type="submit">立即采集</button>
+    </form>
+    <a class="btn" href="{{ url_for('download_csv') }}">下载 CSV</a>
+    <a class="btn" href="{{ url_for('index') }}">刷新</a>
+    <p class="muted">只处理上次成功后的新增字节; 末尾未换行的半行留待下次补全后再入库。</p>
+  </div>
+
+  <div class="card">
+    <span class="stat"><b>{{ total }}</b>已入库记录</span>
+    <span class="stat"><b>{% if lo is not none %}{{ lo }} ~ {{ hi }}{% else %}—{% endif %}</b>序号范围</span>
+  </div>
+
+  <div class="card">
+    <h3>日志文件与采集进度</h3>
+    <table>
+      <tr><th>文件</th><th>状态</th><th>当前大小(字节)</th><th>已采偏移(字节)</th><th>该文件最大序号</th></tr>
+      {% for f in files %}
+      <tr>
+        <td><code>{{ f.name }}</code></td>
+        <td>{{ "存在" if f.exists else "未生成" }}</td>
+        <td class="num">{{ f.size }}</td>
+        <td class="num">{{ f.offset }}</td>
+        <td class="num">{{ f.last_seq if f.last_seq is not none else "—" }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>记录(最新 {{ page_size }} 条)</h3>
+    <table>
+      <tr><th>序号</th><th>UTC 时刻</th><th>温度(°C)</th><th>来源文件</th></tr>
+      {% for r in rows %}
+      <tr>
+        <td class="num">{{ r.seq }}</td>
+        <td>{{ r.ts }}</td>
+        <td class="num">{{ "%.2f"|format(r.temp) }}</td>
+        <td><code>{{ r.source }}</code></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">暂无记录, 点击“立即采集”。</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</main>
+</body>
+</html>

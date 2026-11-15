@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/active.ndjson
+data/active.ndjson.1
+demo/device_state.json
+app/state/
+state/

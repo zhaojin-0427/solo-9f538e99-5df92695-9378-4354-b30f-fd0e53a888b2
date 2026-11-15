@@ -1,0 +1,20 @@
+services:
+  web:
+    build: ./app
+    image: ferment-qc-web:latest
+    container_name: ferment-qc-web
+    ports:
+      - "8080:5000"
+    environment:
+      LOG_DIR: /data
+      DB_PATH: /state/qc.db
+      SECRET_KEY: ${SECRET_KEY:-dev-only-secret}
+    volumes:
+      # 设备日志目录: 宿主机 ./data 挂载为容器 /data, 应用只读
+      - ./data:/data:ro
+      # SQLite 采集进度与记录库, 独立于日志目录持久化
+      - qc-state:/state
+    restart: unless-stopped
+
+volumes:
+  qc-state:
